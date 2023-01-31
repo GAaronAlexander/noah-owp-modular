@@ -42,6 +42,12 @@ type, public :: namelist_type
   real, allocatable, dimension(:) :: sice    ! soil ice content [m3/m3]
   real, allocatable, dimension(:) :: sh2o    ! soil liquid water content [m3/m3]
   real                            :: zwt     ! initial water table depth [m]
+  real                            :: tg      ! initial ground temperature [K] ! aaron a
+  real, allocatable, dimension(:) :: stc     ! snow/soil temperature [K] ! aaron a (up to 7 layers)
+  real                            :: fsno    ! fraction of grid covered by snow [-] !aaron a
+  real                            :: sneqv   ! snow water equivalent [mm] ! aaron a
+  real                            :: bdsno   ! bulk density of snow [kg/m^3] ! aaron a
+
 
   !--------------------!
   !   model options    !
@@ -63,7 +69,7 @@ type, public :: namelist_type
   integer       :: stomatal_resistance_option ! options for soil moisture factor for stomatal resistance (opt_btr)
   integer       :: evap_srfc_resistance_option ! options for surface resistance to evaporation/sublimation (opt_rsf)
   integer       :: subsurface_option ! options for subsurface realization (opt_sub)
-  
+
   ! define missing values against which namelist options can be checked
   integer            :: integerMissing
   real               :: realMissing
@@ -84,7 +90,7 @@ contains
     character(len=*), intent (in), optional :: namelist_file
     integer                                 :: ierr
     character(len=480)                      :: line
-    
+
     ! Temporary var to hold the default, "namelist.input"
     ! or the value of namelist_file, if passed
     character(:), allocatable :: namelist_file_
@@ -123,6 +129,11 @@ contains
     real, allocatable, dimension(:) :: sice    ! soil ice content [m3/m3]
     real, allocatable, dimension(:) :: sh2o    ! soil liquid water content [m3/m3]
     real                            :: zwt     ! initial water table depth [m]
+    real                            :: tg      ! initial ground temperature [K] ! aaron a
+    real, allocatable, dimension(:) :: stc     ! snow/soil temperature [K] ! aaron a (up to 7 layers)
+    real                            :: fsno    ! fraction of grid covered by snow [-] !aaron a
+    real                            :: sneqv   ! snow water equivalent [mm] ! aaron a
+    real                            :: bdsno   ! bulk density of snow [kg/m^3] ! aaron a
 
     !--------------------!
     !   model options    !
@@ -144,9 +155,9 @@ contains
     integer       :: stomatal_resistance_option
     integer       :: evap_srfc_resistance_option
     integer       :: subsurface_option
-    
+
     ! ----- END OF VARIABLE DECLARATIONS -------
-    
+
     !--------------------------- !
     !   define namelist groups   !
     !--------------------------- !
@@ -162,20 +173,20 @@ contains
                                  supercooled_water_option,stomatal_resistance_option,&
                                  evap_srfc_resistance_option,subsurface_option
     namelist / structure       / isltyp,nsoil,nsnow,nveg,vegtyp,croptype,sfctyp,soilcolor
-    namelist / initial_values  / zsoil,dzsnso,sice,sh2o,zwt    
-    
+    namelist / initial_values  / zsoil,dzsnso,sice,sh2o,zwt,tg,stc,fsno,sneqv,bdsno ! aaron a.
+
     ! missing values against which namelist options can be checked
     integer            :: integerMissing
     real               :: realMissing
     character(len=12)  :: stringMissing
-    
+
     ! ----------------------------------------------------------------------------------------------- !
     !   initialize all namelist variables to missing values to allow for checking after namelist read !
     ! ----------------------------------------------------------------------------------------------- !
     integerMissing   = -999999
     realMissing      = -999999.0
     stringMissing    = 'MISSING'
-     
+
     iz               = integerMissing
     dt               = realMissing
     startdate        = stringMissing
@@ -192,9 +203,9 @@ contains
     lon              = realMissing
     terrain_slope    = realMissing
     azimuth          = realMissing
-    ZREF             = realMissing            
+    ZREF             = realMissing
     rain_snow_thresh = realMissing
-   
+
     isltyp           = integerMissing
     nsoil            = integerMissing
     nsnow            = integerMissing
@@ -203,7 +214,11 @@ contains
     croptype         = integerMissing
     sfctyp           = integerMissing
     soilcolor        = integerMissing
-    zwt              = realMissing      
+    zwt              = realMissing
+    tg               = realMissing ! aaron a.
+    fsno             = realMissing ! aaron a.
+    sneqv            = realMissing ! aaron a.
+    bdsno            = realMissing ! aaron a.
 
     precip_phase_option         = integerMissing
     runoff_option               = integerMissing
@@ -238,17 +253,17 @@ contains
     endif
 
     read(30, timing, iostat=ierr)
-    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if      
+    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if
     read(30, parameters, iostat=ierr)
-    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if      
+    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if
     read(30, location, iostat=ierr)
-    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if      
+    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if
     read(30, forcing, iostat=ierr)
-    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if      
+    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if
     read(30, model_options, iostat=ierr)
-    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if      
+    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if
     read(30, structure, iostat=ierr)
-    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if      
+    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if
 
     !---------------------------------------------------------------------
     !  Check model option validity, part 2
@@ -275,32 +290,34 @@ contains
     allocate (dzsnso(-nsnow+1:nsoil))   ! snow/soil layer thickness [m]
     allocate (sice  (       1:nsoil))   ! soil ice content [m3/m3]
     allocate (sh2o  (       1:nsoil))   ! soil liquid water content [m3/m3]
-    
+    allocate (stc   (-nsnow+1:nsoil))   ! snow/soil layer temperature [K] ! aaron a.
+
     ! pre-assign missing values
     sice(1)   = realMissing
     dzsnso(1) = realMissing
     sh2o(1)   = realMissing
+    stc(1)    = realMissing ! aaron a.
 
     ! read remaining group from namelist
     read(30, initial_values)
-    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if      
+    if (ierr/=0) then; backspace(30); read(30,fmt='(A)') line; write(*,'(A)') 'ERROR: invalid line in namelist: '//trim(line); stop; end if
     close(30)
-    
+
     ! calculate total soil depth and populate array for depth of layer-bottom from soil surface
     if(dzsnso(1) /= realMissing) then
       soil_depth = sum(dzsnso(1:nsoil))
       !soil_depth = 0
       do iz = 1, nsoil
-        zsoil(iz) = -1. * sum(dzsnso(1:iz))      
+        zsoil(iz) = -1. * sum(dzsnso(1:iz))
       end do
-    else 
+    else
       write(*,'(A)') 'ERROR: required entry dzsnso not found in namelist'; stop
-    end if 
-    
+    end if
+
     !---------------------------------------------------------------------
     !  transfer values to namelist data structure
     !---------------------------------------------------------------------
-    if(dt               /= realMissing) then; this%dt = dt; else; write(*,'(A)') 'ERROR: required entry dt not found in namelist'; stop; end if 
+    if(dt               /= realMissing) then; this%dt = dt; else; write(*,'(A)') 'ERROR: required entry dt not found in namelist'; stop; end if
     if(startdate        /= stringMissing) then; this%startdate = startdate; else; write(*,'(A)') 'ERROR: required entry startdate not found in namelist'; stop; end if
     if(enddate          /= stringMissing) then; this%enddate = enddate; else; write(*,'(A)') 'ERROR: required entry enddate not found in namelist'; stop; end if
     if(forcing_filename /= stringMissing) then; this%forcing_filename = forcing_filename; else; write(*,'(A)') 'ERROR: required entry forcing_filename not found in namelist'; stop; end if
@@ -311,7 +328,7 @@ contains
     if(noahowp_table    /= stringMissing) then; this%noahowp_table = noahowp_table; else; write(*,'(A)') 'ERROR: required entry noahowp_table not found in namelist'; stop; end if
     if(soil_class_name  /= stringMissing) then; this%soil_class_name = soil_class_name; else; write(*,'(A)') 'ERROR: required entry soil_class_name not found in namelist'; stop; end if
     if(veg_class_name   /= stringMissing) then; this%veg_class_name = veg_class_name; else; write(*,'(A)') 'ERROR: required entry veg_class_name not found in namelist'; stop; end if
-    
+
     if(lat              /= realMissing) then; this%lat = lat; else; write(*,'(A)') 'ERROR: required entry lat not found in namelist'; stop; end if
     if(lon              /= realMissing) then; this%lon = lon; else; write(*,'(A)') 'ERROR: required entry lon not found in namelist'; stop; end if
     if(terrain_slope    /= realMissing) then; this%terrain_slope = terrain_slope; else; write(*,'(A)') 'ERROR: required entry terrain_slope not found in namelist'; stop; end if
@@ -334,6 +351,11 @@ contains
     if(sice(1)    /= realMissing) then; this%sice = sice; else; write(*,'(A)') 'ERROR: required entry sice not found in namelist'; stop; end if
     if(sh2o(1)    /= realMissing) then; this%sh2o = sh2o; else; write(*,'(A)') 'ERROR: required entry sh2o not found in namelist'; stop; end if
     if(zwt        /= realMissing) then; this%zwt = zwt; else; write(*,'(A)') 'ERROR: required entry zwt not found in namelist'; stop; end if
+    if(tg         /= realMissing) then; this%tg = tg; else; write(*,'(A)') 'ERROR: required entry tg not found in namelist'; stop; end if ! aaron a.
+    if(stc(1)     /= realMissing) then; this%stc = stc; else; write(*,'(A)') 'ERROR: required entry stc not found in namelist'; stop; end if ! aaron a.
+    if(fsno       /= realMissing) then; this%fsno = fsno; else; write(*,'(A)') 'ERROR: required entry fsno not found in namelist'; stop; end if ! aaron a.
+    if(sneqv      /= realMissing) then; this%sneqv = sneqv; else; write(*,'(A)') 'ERROR: required entry sneqv not found in namelist'; stop; end if ! aaron a.
+    if(bdsno      /= realMissing) then; this%bdsno = bdsno; else; write(*,'(A)') 'ERROR: required entry bdsno not found in namelist'; stop; end if ! aaron a.
 
     if(precip_phase_option         /= integerMissing) then; this%precip_phase_option = precip_phase_option; else; write(*,'(A)') 'ERROR: required entry precip_phase_option not found in namelist'; stop; end if
     if(runoff_option               /= integerMissing) then; this%runoff_option = runoff_option; else; write(*,'(A)') 'ERROR: required entry runoff_option not found in namelist'; stop; end if
@@ -352,11 +374,11 @@ contains
     if(stomatal_resistance_option  /= integerMissing) then; this%stomatal_resistance_option = stomatal_resistance_option; else; write(*,'(A)') 'ERROR: required entry stomatal_resistance_option not found in namelist'; stop; end if
     if(evap_srfc_resistance_option /= integerMissing) then; this%evap_srfc_resistance_option = evap_srfc_resistance_option; else; write(*,'(A)') 'ERROR: required entry evap_srfc_resistance_option not found in namelist'; stop; end if
     if(subsurface_option           /= integerMissing) then; this%subsurface_option = subsurface_option; else; write(*,'(A)') 'ERROR: required entry subsurface_option not found in namelist'; stop; end if
-    
+
     ! store missing values as well
-    this%integerMissing              = integerMissing 
+    this%integerMissing              = integerMissing
     this%realMissing                 = realMissing
-    this%stringMissing               = stringMissing 
+    this%stringMissing               = stringMissing
 
   end subroutine ReadNamelist
 

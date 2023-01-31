@@ -42,10 +42,10 @@ contains
 ! MB: do each if block separately
    IF(water%ISNOW < 0) &        ! when multi-layer
    CALL COMPACT (domain, levels, parameters, energy, water)
-
+   
    IF(water%ISNOW < 0) &        !when multi-layer
    CALL COMBINE (domain, levels, parameters, energy, water)
-
+   
    IF(water%ISNOW < 0) &        !when multi-layer
    CALL DIVIDE (domain, levels, parameters, energy, water)
 

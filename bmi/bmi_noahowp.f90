@@ -8,7 +8,7 @@ module bminoahowp
    use bmif_2_0
 #endif
 
-  use RunModule 
+  use RunModule
   use, intrinsic :: iso_c_binding, only: c_ptr, c_loc, c_f_pointer
   implicit none
 
@@ -98,11 +98,11 @@ module bminoahowp
 
   ! Exchange items
   integer, parameter :: input_item_count = 8
-  integer, parameter :: output_item_count = 7
+  integer, parameter :: output_item_count = 16 ! aaron a.
   character (len=BMI_MAX_VAR_NAME), target, &
        dimension(input_item_count) :: input_items
   character (len=BMI_MAX_VAR_NAME), target, &
-       dimension(output_item_count) :: output_items 
+       dimension(output_item_count) :: output_items
 
 contains
 
@@ -150,7 +150,7 @@ contains
     input_items(6) = 'VV'       ! wind speed in northward direction (m/s)
     input_items(7) = 'Q2'       ! mixing ratio (kg/kg)
     input_items(8) = 'PRCPNONC' ! precipitation rate (mm/s)
-    
+
 
     names => input_items
     bmi_status = BMI_SUCCESS
@@ -169,6 +169,15 @@ contains
     output_items(5) = 'TG'         ! surface/ground temperature (K) (becomes snow surface temperature when snow is present)
     output_items(6) = 'SNEQV'      ! snow water equivalent (mm)
     output_items(7) = 'TGS'        ! ground temperature (K) (is equal to TG when no snow and equal to bottom snow element temperature when there is snow)
+    output_items(8) = 'FSNO'       ! fraction of snow cover in the grid [%] aaron a.
+    output_items(9) = 'BDSNO'      ! bulk density of snow, used to initilize snow layers [kg/m^3]
+    output_items(10) = 'STC_1'     ! snow layer temperature 1 [K] (may be zero in output if there is no snow layer defined at time of end)
+    output_items(11) = 'STC_2'     ! snow layer temperature 2 [K] (may be zero in output if there is no snow layer defined at time of end)
+    output_items(12) = 'STC_3'     ! snow layer temperature 3 [K] (may be zero in output if there is no snow layer defined at time of end)
+    output_items(13) = 'STC_4'     ! soil layer temperature 4 [K] (always defined)
+    output_items(14) = 'STC_5'     ! soil layer temperature 5 [K] (always defined)
+    output_items(15) = 'STC_6'     ! soil layer temperature 6 [K] (always defined)
+    output_items(16) = 'STC_7'     ! soil layer temperature 7 [K] (always defined) ! end aaron a.
 
     names => output_items
     bmi_status = BMI_SUCCESS
@@ -287,7 +296,9 @@ contains
 
     select case(name)
     case('SFCPRS', 'SFCTMP', 'SOLDN', 'LWDN', 'UU', 'VV', 'Q2', 'PRCPNONC', & ! input vars
-         'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS')             ! output vars
+         'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
+         'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
+         'STC_6', 'STC_7')  ! snow output vars aaron a.
        grid = 0
        bmi_status = BMI_SUCCESS
     case default
@@ -558,7 +569,9 @@ contains
 
     select case(name)
     case('SFCPRS', 'SFCTMP', 'SOLDN', 'LWDN', 'UU', 'VV', 'Q2', 'PRCPNONC', & ! input vars
-         'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS')             ! output vars
+         'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
+         'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
+         'STC_6', 'STC_7')  ! snow output vars aaron a.
        type = "real"
        bmi_status = BMI_SUCCESS
     case default
@@ -578,7 +591,8 @@ contains
     case("SFCPRS")
        units = "Pa"
        bmi_status = BMI_SUCCESS
-    case("SFCTMP", "TG", "TGS")
+    case("SFCTMP", "TG", "TGS","STC_1","STC_2","STC_3","STC_4",&
+         "STC_5", "STC_6", "STC_7")
        units = "K"
        bmi_status = BMI_SUCCESS
     case("SOLDN", "LWDN")
@@ -598,6 +612,12 @@ contains
        bmi_status = BMI_SUCCESS
     case("SNEQV")
        units = "mm"
+       bmi_status = BMI_SUCCESS
+    case("BDSNO")
+       units = "kg/m3"
+       bmi_status = BMI_SUCCESS
+    case("FSNO")
+       units = "-"
        bmi_status = BMI_SUCCESS
     case default
        units = "-"
@@ -657,6 +677,15 @@ contains
        bmi_status = BMI_SUCCESS
     case("TGS")
        size = sizeof(this%model%energy%tgs)            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("STC_1","STC_2","STC_3","STC_4","STC_5","STC_6","STC_7") ! aaron a.
+       size = sizeof(this%model%energy%stc(1))            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("FSNO") ! aaron a.
+       size = sizeof(this%model%water%fsno)            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("BDSNO") ! aaron a.
+       size = sizeof(this%model%water%fsno)            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case default
        size = -1
@@ -770,12 +799,39 @@ contains
     case("TGS")
        dest = [this%model%energy%tgs]
        bmi_status = BMI_SUCCESS
+    case("STC_1")
+       dest = [this%model%energy%stc(-2)] ! aaron a.
+       bmi_status = BMI_SUCCESS
+    case("STC_2")
+       dest = [this%model%energy%stc(-1)] ! aaron a.
+       bmi_status = BMI_SUCCESS
+    case("STC_3")
+       dest = [this%model%energy%stc(0)]
+       bmi_status = BMI_SUCCESS
+    case("STC_4")
+       dest = [this%model%energy%stc(1)]
+       bmi_status = BMI_SUCCESS
+    case("STC_5")
+       dest = [this%model%energy%stc(2)]
+       bmi_status = BMI_SUCCESS
+    case("STC_6")
+       dest = [this%model%energy%stc(3)]
+       bmi_status = BMI_SUCCESS
+    case("STC_7")
+       dest = [this%model%energy%stc(4)]
+       bmi_status = BMI_SUCCESS
+    case("FSNO")
+       dest = [this%model%water%fsno]
+       bmi_status = BMI_SUCCESS
+    case("BDSNO")
+       dest = [this%model%water%bdsno]
+       bmi_status = BMI_SUCCESS       ! end aaron a.
     case default
        dest(:) = -1.0
        bmi_status = BMI_FAILURE
     end select
     ! NOTE, if vars are gridded, then use:
-    ! dest = reshape(this%model%temperature, [this%model%n_x*this%model%n_y]) 
+    ! dest = reshape(this%model%temperature, [this%model%n_x*this%model%n_y])
   end function noahowp_get_float
 
   ! Get a copy of a double variable's values, flattened.
@@ -974,6 +1030,33 @@ contains
        bmi_status = BMI_SUCCESS
     case("TGS")
        this%model%energy%tgs = src(1)
+       bmi_status = BMI_SUCCESS
+    case("BDSNO")
+       this%model%water%bdsno = src(1) ! aaron a.
+       bmi_status = BMI_SUCCESS
+    case("FSNO")
+       this%model%water%fsno = src(1)
+       bmi_status = BMI_SUCCESS
+    case("STC_1")
+       this%model%energy%stc(-2) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("STC_2")
+       this%model%energy%stc(-1) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("STC_3")
+       this%model%energy%stc(0) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("STC_4")
+       this%model%energy%stc(1) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("STC_5")
+       this%model%energy%stc(2) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("STC_6")
+       this%model%energy%stc(3) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("STC_7")
+       this%model%energy%stc(4) = src(1) ! end aaron a. 
        bmi_status = BMI_SUCCESS
     case default
        bmi_status = BMI_FAILURE

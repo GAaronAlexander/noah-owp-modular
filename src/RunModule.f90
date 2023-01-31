@@ -1,7 +1,7 @@
 ! module for executing Noah-OWP-Modular model in a streamlined way
 
 module RunModule
-  
+
   use NamelistRead
   use LevelsType
   use DomainType
@@ -18,7 +18,7 @@ module RunModule
   use EnergyModule
   use WaterModule
   use DateTimeUtilsModule
-  
+
   implicit none
   type :: noahowp_type
     type(namelist_type)   :: namelist
@@ -36,11 +36,12 @@ contains
 
   SUBROUTINE initialize_from_file (model, config_filename)
     implicit none
-    
+
     type(noahowp_type), target, intent(out) :: model
     character(len=*), intent (in)           :: config_filename    ! config file from command line argument
     integer             :: forcing_timestep         ! integer time step (set to dt) for some subroutine calls
-    
+    integer             :: IZ ! loop constant ! aaron a.
+
     associate(namelist   => model%namelist,   &
               levels     => model%levels,     &
               domain     => model%domain,     &
@@ -49,7 +50,7 @@ contains
               water      => model%water,      &
               forcing    => model%forcing,    &
               energy     => model%energy)
-        
+
       !---------------------------------------------------------------------
       !  initialize
       !---------------------------------------------------------------------
@@ -92,11 +93,11 @@ contains
       water%etrani    = 0.0          ! transpiration from each level[mm/s]
       water%btrani    = 0.0          ! soil water transpiration factor (0 to 1) by soil layer
       water%btran     = 0.0          ! soil water transpiration factor (0 to 1)
-  
+
       ! for canopy water
       water%RAIN      = 0.0          ! rainfall mm/s
       water%SNOW      = 0.0          ! snowfall mm/s
-      water%BDFALL    = 0.0        ! bulk density of snowfall (kg/m3)
+      water%BDFALL    = 0.0          ! bulk density of snowfall (kg/m3)
       water%FB_snow   = 0.0          ! canopy fraction buried by snow (computed from phenology)
       water%FP        = 1.0          ! fraction of the gridcell that receives precipitation
       water%CANLIQ    = 0.0          ! canopy liquid water [mm]
@@ -114,14 +115,15 @@ contains
       water%SNOWHIN  = 0.0           ! snow depth increasing rate (m/s)
       water%ECAN     = 0.0           ! evap of intercepted water (mm/s) [+]
       water%ETRAN    = 0.0           ! transpiration rate (mm/s) [+]
-  
+
+
       ! for snow water
-      water%QVAP     = 0.0           ! evaporation/sublimation rate mm/s 
+      water%QVAP     = 0.0           ! evaporation/sublimation rate mm/s
       water%ISNOW    = 0
       water%SNOWH    = 0.0
-      water%SNEQV    = 0.0
+      !water%SNEQV    = 0.0          !snow water equivelant [mm] aaron a. (now initilized by user)
       water%SNEQVO   = 0.0
-      water%BDSNO    = 0.0
+      !water%BDSNO    = 0.0          !snow average density [kg/m^3] aaron a. (now initilized by user )
       water%PONDING  = 0.0
       water%PONDING1 = 0.0
       water%PONDING2 = 0.0
@@ -133,25 +135,25 @@ contains
       water%SNICE    = 0.0
       water%SNLIQ    = 0.0
       water%FICEOLD  = 0.0
-      water%FSNO     = 0.0
-  
+      !water%FSNO     = 0.0          !fraction of grid square covered by snow [-] aaron a. (now initialized by user)
+
       ! for energy-related variable
-      energy%TV      = 298.0        ! leaf temperature [K]
-      energy%TG      = 298.0        ! ground temperature [K]
+      energy%TV      = 298.0        ! leaf temperature [K] !this is immediatly changed due to iteration
+      !energy%TG      = 298.0       ! ground temperature [K] aaron a. (now initilized by user) [though will immediatly be changed by iteration]
       energy%CM      = 0.0          ! momentum drag coefficient
       energy%CH      = 0.0          ! heat drag coefficient
       energy%FCEV    = 5.0          ! constant canopy evaporation (w/m2) [+ to atm ]
       energy%FCTR    = 5.0          ! constant transpiration (w/m2) [+ to atm]
       energy%IMELT   = 1 ! freeze
-      energy%STC     = 298.0
+      !energy%STC     = 298.0       ! soil/snow temperature [K] aaron a. (now initilized by user)
       energy%COSZ    = 0.7        ! cosine of solar zenith angle
       energy%ICE     = 0          ! 1 if sea ice, -1 if glacier, 0 if no land ice (seasonal snow)
       energy%ALB     = 0.6        ! initialize snow albedo in CLASS routine
       energy%ALBOLD  = 0.6        ! initialize snow albedo in CLASS routine
       energy%FROZEN_CANOPY = .false. ! used to define latent heat pathway
-      energy%FROZEN_GROUND = .false. 
+      energy%FROZEN_GROUND = .false.
 
-      ! -- forcings 
+      ! -- forcings
       ! these are initially set to huge(1) -- to trap errors may want to set to a recognizable flag if they are
       !   supposed to be assigned below (eg -9999)
       !forcing%UU       = 0.0        ! wind speed in u direction (m s-1)
@@ -162,7 +164,7 @@ contains
       !forcing%PRCP     = 0.0        ! convective precipitation entering  [mm/s]    ! MB/AN : v3.7
       !forcing%SOLDN    = 0.0        ! downward shortwave radiation (w/m2)
       !forcing%LWDN     = 0.0        ! downward longwave radiation (w/m2)
-      
+
       ! forcing-related variables
       forcing%PRCPCONV = 0.0        ! convective precipitation entering  [mm/s]    ! MB/AN : v3.7
       forcing%PRCPNONC = 0.0        ! non-convective precipitation entering [mm/s] ! MB/AN : v3.7
@@ -177,67 +179,137 @@ contains
       forcing%SWDOWN   = 0.0        ! downward solar filtered by sun angle [w/m2]
       forcing%FPICE    = 0.0        ! fraction of ice                AJN
       forcing%JULIAN   = 0.0        ! Setting arbitrary julian day
-      forcing%YEARLEN  = 365        ! Setting year to be normal (i.e. not a leap year)  
+      forcing%YEARLEN  = 365        ! Setting year to be normal (i.e. not a leap year)
       forcing%FOLN     = 1.0        ! foliage nitrogen concentration (%); for now, set to nitrogen saturation
       forcing%TBOT     = 285.0      ! bottom condition for soil temperature [K]
 
+      !! a reconstruction of the SNOW INIT that is in Noah-MP that was originally
+      !! removed by OWP. For full, original code, please see:
+      !! https://github.com/NCAR/noahmp/blob/master/drivers/wrf/module_sf_noahmpdrv.F
+      !! ~line 2236
+      !! Begin code changes (Aaron A.)
+      if ((water%SNEQV <= 0.0).AND. (water%BDSNO <= 0.0)) then 
+        if (energy%stc(0) > 0.0) then 
+           write(*,'(A)') 'ERROR: Problem with snow water equivelant, snow density, and snow temperature assignment. Either remove the snow layer temperature (STC) or increase snow water equivelant and snow density .'
+          stop
+        end if 
+        ! if no snow intilized, set everything to 0
+        water%snowh = 0.0
+        water%sneqv = 0.0 
+        water%bdsno = 0.0
+        domain%zsnso(-namelist%nsnow+1:0) = 0.0 ! comment out Aaron A.  
+      
+      else ! else for the snow being initlized
+      water%SNOWH = water%SNEQV/water%BDSNO ! snow depth, in m
+      
+      if( water%SNOWH < 0.025) then
+        water%ISNOW = 0
+        domain%dzsnso(-namelist%nsnow+1:0) = 0.0
+      else
+        if(( water%SNOWH >= 0.025) .AND. (water%SNOWH <= 0.05)) then
+          water%ISNOW = -1
+          domain%dzsnso(0) = water%SNOWH
+        else if (( water%SNOWH > 0.05) .AND. (water%SNOWH <= 0.10)) then
+          water%ISNOW = -2
+          domain%dzsnso(-1) = water%SNOWH/2
+          domain%dzsnso(0) = water%SNOWH/2
+        else if (( water%SNOWH > 0.10) .AND. (water%SNOWH <= 0.25)) then
+          water%ISNOW = -2
+          domain%dzsnso(-1) = 0.05
+          domain%dzsnso(0) = water%SNOWH - domain%dzsnso(-1)
+        else if (( water%SNOWH > 0.25) .AND. (water%SNOWH <= 0.45)) then
+          water%ISNOW = -3
+          domain%dzsnso(-2) = 0.05
+          domain%dzsnso(-1) = 0.5*(water%SNOWH - domain%dzsnso(-2))
+          domain%dzsnso(0) = 0.5*(water%SNOWH - domain%dzsnso(-2))
+        else if ( water%SNOWH > 0.45)  then
+          water%ISNOW = -3
+          domain%dzsnso(-2) = 0.05
+          domain%dzsnso(-1) = 0.20
+          domain%dzsnso(0) = water%SNOWH - domain%dzsnso(-2) - domain%dzsnso(-1)
+        else
+          write(*,'(A)') 'ERROR: Problem with the logic assigning snow layers.'
+          stop
+        end if !first nest
+      end if ! second nest
+      write(*,*) water%isnow
+      ! we now need to 'seed' the snice variables. STC is tsno, and
+      ! is read in by user now
+      do IZ = water%ISNOW+1,0
+        water%snice(IZ) = 1.00 * domain%dzsnso(IZ)*water%BDSNO ! initilized all ice
+      end do
+
+       write(*,*) domain%DZSNSO
+      ! now assign layer depths (zsnso) ! always 0 and -1
+      domain%zsnso(water%ISNOW+1) = domain%dzsnso(water%ISNOW+1)
+
+      if (water%isnow <= -2) then ! are there -2 or -3 layers
+        domain%zsnso(water%isnow+2) = domain%dzsnso(water%isnow+2) + domain%zsnso(water%ISNOW+1)
+        if (water%isnow == -3) then ! is there a -3 layer
+          domain%zsnso(water%isnow+3) = domain%dzsnso(water%isnow+3) + domain%zsnso(water%ISNOW+2)
+        end if
+      end if
+
+     end if ! end the check
+     !! end the changes made by Aaron A. 
+
       ! domain variables
-      domain%zsnso(-namelist%nsnow+1:0) = 0.0
+      !domain%zsnso(-namelist%nsnow+1:0) = 0.0 ! comment out Aaron A. 
       domain%zsnso(1:namelist%nsoil)    = namelist%zsoil
-     
+
       ! time variables
       domain%nowdate   = domain%startdate ! start the model with nowdate = startdate
       forcing_timestep = domain%dt        ! integer timestep for some subroutine calls
       domain%itime     = 1                ! initialize the time loop counter at 1
       domain%time_dbl  = 0.d0             ! start model run at t = 0
-      
+
       !---------------------------------------------------------------------
       !--- set a time vector for simulation ---
       !---------------------------------------------------------------------
       ! --- AWW:  calculate start and end utimes & records for requested station data read period ---
       call get_utime_list (domain%start_datetime, domain%end_datetime, domain%dt, domain%sim_datetimes)  ! makes unix-time list for desired records (end-of-timestep)
-      domain%ntime = size (domain%sim_datetimes)   
-      !print *, "---------"; 
+      domain%ntime = size (domain%sim_datetimes)
+      !print *, "---------";
       !print *, 'Simulation startdate = ', domain%startdate, ' enddate = ', domain%enddate, ' dt(sec) = ', domain%dt, ' ntimes = ', domain%ntime  ! YYYYMMDD dates
       !print *, "---------"
-      
+
       !---------------------------------------------------------------------
       ! Open the forcing file
       ! Code adapted from the ASCII_IO from NOAH-MP V1.1
-      ! Compiler directive NGEN_FORCING_ACTIVE to be defined if 
+      ! Compiler directive NGEN_FORCING_ACTIVE to be defined if
       ! Nextgen forcing is being used (https://github.com/NOAA-OWP/ngen)
       !---------------------------------------------------------------------
 #ifndef NGEN_FORCING_ACTIVE
       call open_forcing_file(namelist%forcing_filename)
 #endif
-      
+
       !---------------------------------------------------------------------
       ! create output file and add initial values
-      ! Compiler directive NGEN_OUTPUT_ACTIVE to be defined if 
+      ! Compiler directive NGEN_OUTPUT_ACTIVE to be defined if
       ! Nextgen is writing model output (https://github.com/NOAA-OWP/ngen)
       !---------------------------------------------------------------------
 #ifndef NGEN_OUTPUT_ACTIVE
       call initialize_output(namelist%output_filename, domain%ntime, levels%nsoil, levels%nsnow)
 #endif
-      
+
     end associate ! terminate the associate block
 
-  END SUBROUTINE initialize_from_file   
-  
+  END SUBROUTINE initialize_from_file
+
   !== Finalize the model ================================================================================
 
   SUBROUTINE cleanup(model)
     implicit none
     type(noahowp_type), intent(inout) :: model
-      
+
       !---------------------------------------------------------------------
-      ! Compiler directive NGEN_OUTPUT_ACTIVE to be defined if 
+      ! Compiler directive NGEN_OUTPUT_ACTIVE to be defined if
       ! Nextgen is writing model output (https://github.com/NOAA-OWP/ngen)
       !---------------------------------------------------------------------
 #ifndef NGEN_OUTPUT_ACTIVE
       call finalize_output()
 #endif
-  
+
   END SUBROUTINE cleanup
 
   !== Move the model ahead one time step ================================================================
@@ -250,7 +322,7 @@ contains
     model%domain%itime    = model%domain%itime + 1 ! increment the integer time by 1
     model%domain%time_dbl = dble(model%domain%time_dbl + model%domain%dt) ! increment model time in seconds by DT
   END SUBROUTINE advance_in_time
-  
+
   !== Run one time step of the model ================================================================
 
   SUBROUTINE solve_noahowp(model)
@@ -268,15 +340,15 @@ contains
               water      => model%water, &
               forcing    => model%forcing, &
               energy     => model%energy)
-    
+
     ! Compute the current UNIX datetime
     domain%curr_datetime = domain%sim_datetimes(domain%itime)     ! use end-of-timestep datetimes  because initial var values are being written
     call unix_to_date (domain%curr_datetime, curr_yr, curr_mo, curr_dy, curr_hr, curr_min, curr_sec)
     ! print '(2x,I4,1x,I2,1x,I2,1x,I2,1x,I2)', curr_yr, curr_mo, curr_dy, curr_hr, curr_min ! time check for debugging
-    
+
     !---------------------------------------------------------------------
     ! Read in the forcing data
-    ! Compiler directive NGEN_FORCING_ACTIVE to be defined if 
+    ! Compiler directive NGEN_FORCING_ACTIVE to be defined if
     ! Nextgen forcing is being used (https://github.com/NOAA-OWP/ngen)
     ! If it is defined, Nextgen MUST provide forcing
     !---------------------------------------------------------------------
@@ -285,7 +357,7 @@ contains
     call read_forcing_text(iunit, domain%nowdate, forcing_timestep, &
          forcing%UU, forcing%VV, forcing%SFCTMP, forcing%Q2, forcing%SFCPRS, forcing%SOLDN, forcing%LWDN, forcing%PRCP, ierr)
 #endif
-   
+
     !---------------------------------------------------------------------
     ! call the main utility routines
     !---------------------------------------------------------------------
@@ -317,13 +389,13 @@ contains
 
     !---------------------------------------------------------------------
     ! add to output file
-    ! Compiler directive NGEN_OUTPUT_ACTIVE to be defined if 
+    ! Compiler directive NGEN_OUTPUT_ACTIVE to be defined if
     ! Nextgen is writing model output (https://github.com/NOAA-OWP/ngen)
     !---------------------------------------------------------------------
 #ifndef NGEN_OUTPUT_ACTIVE
     call add_to_output(domain, water, energy, forcing, domain%itime, levels%nsoil,levels%nsnow)
 #endif
-    
+
     end associate ! terminate associate block
   END SUBROUTINE solve_noahowp
 
