@@ -47,6 +47,8 @@ type, public :: namelist_type
   real                            :: fsno    ! fraction of grid covered by snow [-] !aaron a
   real                            :: sneqv   ! snow water equivalent [mm] ! aaron a
   real                            :: bdsno   ! bulk density of snow [kg/m^3] ! aaron a
+  real                            :: snice   ! snow layer ice [mm] ! aaron a.
+  real                            :: snliq   ! snow layer water [mm] ! aaron a.
 
 
   !--------------------!
@@ -134,6 +136,8 @@ contains
     real                            :: fsno    ! fraction of grid covered by snow [-] !aaron a
     real                            :: sneqv   ! snow water equivalent [mm] ! aaron a
     real                            :: bdsno   ! bulk density of snow [kg/m^3] ! aaron a
+    real, allocatable, dimension(:) :: snice   ! snow layer ice [mm] aaron a.
+    real, allocatable, dimension(:) :: snliq   ! snow layer water [mm] aaron a.
 
     !--------------------!
     !   model options    !
@@ -173,7 +177,7 @@ contains
                                  supercooled_water_option,stomatal_resistance_option,&
                                  evap_srfc_resistance_option,subsurface_option
     namelist / structure       / isltyp,nsoil,nsnow,nveg,vegtyp,croptype,sfctyp,soilcolor
-    namelist / initial_values  / zsoil,dzsnso,sice,sh2o,zwt,tg,stc,fsno,sneqv,bdsno ! aaron a.
+    namelist / initial_values  / zsoil,dzsnso,sice,sh2o,zwt,tg,stc,fsno,sneqv,bdsno,snice,snliq ! aaron a.
 
     ! missing values against which namelist options can be checked
     integer            :: integerMissing
@@ -219,6 +223,8 @@ contains
     fsno             = realMissing ! aaron a.
     sneqv            = realMissing ! aaron a.
     bdsno            = realMissing ! aaron a.
+    snice            = realMissing ! aaron a.
+    snliq            = realMissing ! aaron a.
 
     precip_phase_option         = integerMissing
     runoff_option               = integerMissing
@@ -291,12 +297,16 @@ contains
     allocate (sice  (       1:nsoil))   ! soil ice content [m3/m3]
     allocate (sh2o  (       1:nsoil))   ! soil liquid water content [m3/m3]
     allocate (stc   (-nsnow+1:nsoil))   ! snow/soil layer temperature [K] ! aaron a.
+    allocate (snice (-nsnow+1:0))       ! snow layer ice content [mm] ! aaron a.
+    allocate (snliq (-nsnow_1:0))       ! snow layer water content [mm] ! aaron a.
 
     ! pre-assign missing values
     sice(1)   = realMissing
     dzsnso(1) = realMissing
     sh2o(1)   = realMissing
     stc(1)    = realMissing ! aaron a.
+    snice(1)  = realMissing ! aaron a.
+    snliq(1)  = realMissing ! aaron a.
 
     ! read remaining group from namelist
     read(30, initial_values)
@@ -356,6 +366,9 @@ contains
     if(fsno       /= realMissing) then; this%fsno = fsno; else; write(*,'(A)') 'ERROR: required entry fsno not found in namelist'; stop; end if ! aaron a.
     if(sneqv      /= realMissing) then; this%sneqv = sneqv; else; write(*,'(A)') 'ERROR: required entry sneqv not found in namelist'; stop; end if ! aaron a.
     if(bdsno      /= realMissing) then; this%bdsno = bdsno; else; write(*,'(A)') 'ERROR: required entry bdsno not found in namelist'; stop; end if ! aaron a.
+    if(snice(1)   /= realMissing) then; this%snice = snice; else; write(*,'(A)') 'ERROR: required entry snice not found in namelist'; stop; end if ! aaron a.
+    if(snliq(1)   /= realMissing) then; this%snliq = snliq; else; write(*,'(A)') 'ERROR: required entry snliq not found in namelist'; stop; end if ! aaron a. 
+
 
     if(precip_phase_option         /= integerMissing) then; this%precip_phase_option = precip_phase_option; else; write(*,'(A)') 'ERROR: required entry precip_phase_option not found in namelist'; stop; end if
     if(runoff_option               /= integerMissing) then; this%runoff_option = runoff_option; else; write(*,'(A)') 'ERROR: required entry runoff_option not found in namelist'; stop; end if

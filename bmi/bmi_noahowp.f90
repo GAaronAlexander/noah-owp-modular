@@ -98,7 +98,7 @@ module bminoahowp
 
   ! Exchange items
   integer, parameter :: input_item_count = 8
-  integer, parameter :: output_item_count = 16 ! aaron a.
+  integer, parameter :: output_item_count = 22 ! aaron a.
   character (len=BMI_MAX_VAR_NAME), target, &
        dimension(input_item_count) :: input_items
   character (len=BMI_MAX_VAR_NAME), target, &
@@ -177,7 +177,13 @@ contains
     output_items(13) = 'STC_4'     ! soil layer temperature 4 [K] (always defined)
     output_items(14) = 'STC_5'     ! soil layer temperature 5 [K] (always defined)
     output_items(15) = 'STC_6'     ! soil layer temperature 6 [K] (always defined)
-    output_items(16) = 'STC_7'     ! soil layer temperature 7 [K] (always defined) ! end aaron a.
+    output_items(16) = 'STC_7'     ! soil layer temperature 7 [K] (always defined)
+    output_items(17) = 'SNICE_1'   ! snow layer ice layer 1 [mm] (may be zero if there is no snow layer)
+    output_items(18) = 'SNICE_2'   ! snow layer ice layer 2 [mm] (may be zero if there is no snow layer)
+    output_items(19) = 'SNICE_3'   ! snow layer ice layer 3 [mm] (may be zero if there is no snow layer)
+    output_items(20) = 'SNLIQ_1'   ! snow layer water layer 1 [mm] (may be zero if there is no snow layer)
+    output_items(21) = 'SNLIQ_2'   ! snow layer water layer 2 [mm] (may be zero if there is no snow layer)
+    output_items(22) = 'SNLIQ_3'   ! snow layer water layer 3 [mm] (may be zero if there is no snow layer)
 
     names => output_items
     bmi_status = BMI_SUCCESS
@@ -298,7 +304,7 @@ contains
     case('SFCPRS', 'SFCTMP', 'SOLDN', 'LWDN', 'UU', 'VV', 'Q2', 'PRCPNONC', & ! input vars
          'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
          'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
-         'STC_6', 'STC_7')  ! snow output vars aaron a.
+         'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3')  ! snow output vars aaron a.
        grid = 0
        bmi_status = BMI_SUCCESS
     case default
@@ -571,7 +577,7 @@ contains
     case('SFCPRS', 'SFCTMP', 'SOLDN', 'LWDN', 'UU', 'VV', 'Q2', 'PRCPNONC', & ! input vars
          'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
          'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
-         'STC_6', 'STC_7')  ! snow output vars aaron a.
+         'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3')  ! snow output vars aaron a.
        type = "real"
        bmi_status = BMI_SUCCESS
     case default
@@ -610,7 +616,7 @@ contains
     case("PRCPNONC", "ETRAN")
        units = "mm/s"
        bmi_status = BMI_SUCCESS
-    case("SNEQV")
+    case("SNEQV","SNICE_1","SNICE_2","SNICE_3","SNLIQ_1","SNLIQ_2","SNLIQ_3") ! aaron a.
        units = "mm"
        bmi_status = BMI_SUCCESS
     case("BDSNO")
@@ -685,7 +691,13 @@ contains
        size = sizeof(this%model%water%fsno)            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case("BDSNO") ! aaron a.
-       size = sizeof(this%model%water%fsno)            ! 'sizeof' in gcc & ifort
+       size = sizeof(this%model%water%bdsno)            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("SNLIQ_1","SNLIQ_2","SNLIQ_3") ! aaron a.
+       size = sizeof(this%model%water%snliq(1))            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("SNICE_1","SNICE_2","SNICE_3") ! aaron a.
+       size = sizeof(this%model%water%snice(1))            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case default
        size = -1
@@ -800,10 +812,10 @@ contains
        dest = [this%model%energy%tgs]
        bmi_status = BMI_SUCCESS
     case("STC_1")
-       dest = [this%model%energy%stc(-2)] ! aaron a.
+       dest = [this%model%energy%stc(-2)] ! start aaron a.
        bmi_status = BMI_SUCCESS
     case("STC_2")
-       dest = [this%model%energy%stc(-1)] ! aaron a.
+       dest = [this%model%energy%stc(-1)]
        bmi_status = BMI_SUCCESS
     case("STC_3")
        dest = [this%model%energy%stc(0)]
@@ -825,7 +837,25 @@ contains
        bmi_status = BMI_SUCCESS
     case("BDSNO")
        dest = [this%model%water%bdsno]
-       bmi_status = BMI_SUCCESS       ! end aaron a.
+       bmi_status = BMI_SUCCESS
+    case("SNICE_1")
+       dest = [this%model%energy%snice(-2)]
+       bmi_status = BMI_SUCCESS
+    case("SNICE_2")
+       dest = [this%model%energy%snice(-1)]
+       bmi_status = BMI_SUCCESS
+    case("SNICE_3")
+        dest = [this%model%energy%snice(0)]
+        bmi_status = BMI_SUCCESS
+    case("SNLIQ_1")
+        dest = [this%model%energy%snliq(-2)]
+        bmi_status = BMI_SUCCESS
+    case("SNLIQ_2")
+        dest = [this%model%energy%snliq(-1)]
+        bmi_status = BMI_SUCCESS
+    case("SNLIQ_3")
+        dest = [this%model%energy%snliq(0)] ! end aaron a.
+        bmi_status = BMI_SUCCESS
     case default
        dest(:) = -1.0
        bmi_status = BMI_FAILURE
@@ -1056,8 +1086,26 @@ contains
        this%model%energy%stc(3) = src(1)
        bmi_status = BMI_SUCCESS
     case("STC_7")
-       this%model%energy%stc(4) = src(1) ! end aaron a. 
+       this%model%energy%stc(4) = src(1)
        bmi_status = BMI_SUCCESS
+    case("SNICE_1")
+       this%model%energy%snice(-2) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SNICE_2")
+       this%model%energy%snice(-1) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SNICE_3")
+       this%model%energy%snice(0) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SNLIQ_1")
+       this%model%energy%snliq(-2) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SNLIQ_2")
+       this%model%energy%snliq(-1) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SNLIQ_3")
+       this%model%energy%snliq(0) = src(1)
+       bmi_status = BMI_SUCCESS               ! end aaron a. 
     case default
        bmi_status = BMI_FAILURE
     end select

@@ -132,8 +132,8 @@ contains
       water%QSNSUB   = 0.0
       water%QDEW     = 0.0
       water%QSDEW    = 0.0
-      water%SNICE    = 0.0
-      water%SNLIQ    = 0.0
+      !water%SNICE    = 0.0         !snow layer ice [mm] aaron a. (now initialized by user)
+      !water%SNLIQ    = 0.0         !snow layer water [mm] aaron a. (now initialized by user)
       water%FICEOLD  = 0.0
       !water%FSNO     = 0.0          !fraction of grid square covered by snow [-] aaron a. (now initialized by user)
 
@@ -188,20 +188,23 @@ contains
       !! https://github.com/NCAR/noahmp/blob/master/drivers/wrf/module_sf_noahmpdrv.F
       !! ~line 2236
       !! Begin code changes (Aaron A.)
-      if ((water%SNEQV <= 0.0).AND. (water%BDSNO <= 0.0)) then 
-        if (energy%stc(0) > 0.0) then 
+      if ((water%SNEQV <= 0.0).AND. (water%BDSNO <= 0.0)) then
+        if (energy%stc(0) > 0.0) then
            write(*,'(A)') 'ERROR: Problem with snow water equivelant, snow density, and snow temperature assignment. Either remove the snow layer temperature (STC) or increase snow water equivelant and snow density .'
           stop
-        end if 
+        else if ((water%snice(0) > 0.0).or.(water%snliq(0) > 0.0)) then
+            write(*,'(A)') 'ERROR: Problem with snow water equivelant, snow density, and snow ice/water contenct (SNICE and SNLIQ). Either set SNICE and SNLIQ to zero in namelist or increase snow water equivelant and snow density .'
+           stop
+        end if
         ! if no snow intilized, set everything to 0
         water%snowh = 0.0
-        water%sneqv = 0.0 
+        water%sneqv = 0.0
         water%bdsno = 0.0
-        domain%zsnso(-namelist%nsnow+1:0) = 0.0 ! comment out Aaron A.  
-      
+        domain%zsnso(-namelist%nsnow+1:0) = 0.0 ! comment out Aaron A.
+
       else ! else for the snow being initlized
       water%SNOWH = water%SNEQV/water%BDSNO ! snow depth, in m
-      
+
       if( water%SNOWH < 0.025) then
         water%ISNOW = 0
         domain%dzsnso(-namelist%nsnow+1:0) = 0.0
@@ -232,14 +235,7 @@ contains
           stop
         end if !first nest
       end if ! second nest
-      write(*,*) water%isnow
-      ! we now need to 'seed' the snice variables. STC is tsno, and
-      ! is read in by user now
-      do IZ = water%ISNOW+1,0
-        water%snice(IZ) = 1.00 * domain%dzsnso(IZ)*water%BDSNO ! initilized all ice
-      end do
 
-       write(*,*) domain%DZSNSO
       ! now assign layer depths (zsnso) ! always 0 and -1
       domain%zsnso(water%ISNOW+1) = domain%dzsnso(water%ISNOW+1)
 
@@ -250,11 +246,20 @@ contains
         end if
       end if
 
+
+      ! now we need to do a final check of the namelist:
+      do IZ = water%ISNOW+1, 0
+        if ((water%snice(IZ)==0).and.(water%snliq(IZ)==0)) then
+            write(*,'(A)') 'ERROR: There is a problem with the designation fo SNICE, SNLIQ. Namelist does not specify value, when there should be a value based on BDSNO & SNEQV. Fix Namelist Input and try again.'
+             stop
+        end if ! end final initiliztion check
+      end do ! end for loop
+
      end if ! end the check
-     !! end the changes made by Aaron A. 
+     !! end the changes made by Aaron A.
 
       ! domain variables
-      !domain%zsnso(-namelist%nsnow+1:0) = 0.0 ! comment out Aaron A. 
+      !domain%zsnso(-namelist%nsnow+1:0) = 0.0 ! comment out Aaron A.
       domain%zsnso(1:namelist%nsoil)    = namelist%zsoil
 
       ! time variables
