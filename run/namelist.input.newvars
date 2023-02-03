@@ -29,7 +29,7 @@
 
 &model_options                                      ! see OptionsType.f90 for details
   precip_phase_option               = 1
-  snow_albedo_option                = 1 
+  snow_albedo_option                = 1
   dynamic_veg_option                = 1
   runoff_option                     = 8
   drainage_option                   = 8
@@ -65,8 +65,8 @@
  zwt       =  -2.0                                        ! initial water table depth below surface [m]
  fsno      =  1.0                                         ! fraction of grid covered by snow (0-1)
  bdsno     =  0.0                                         ! bulk density of snow kg/m3
- sneqv     =  0.0                                         ! snow water equivelant in mm
- stc       =  0.0, 0.0, 0.0, 270.0, 272.0, 275.0, 277.0 ! initilize temperature profile of snow and soil. snow is items 1,2,3 in list, soil is 4,5,6,7 [K]
+ sneqv     =  0.0                                         ! snow water equivalent in mm
+ stc       =  0.0, 0.0, 0.0, 270.0, 272.0, 275.0, 277.0 ! initialize temperature profile of snow and soil. snow is items 1,2,3 in list, soil is 4,5,6,7 [K]
  tg        =  260.0                                       ! ground temperature [k] (can be the same as STC profile for first guess)
  snice     =  0.0, 0.0,  0.0                              ! initial snow water ice per layer [mm]  (see readme for an initial guess if needed)
  snliq     =  0.0, 0.0,  0.0                              ! initial snow water liquid per layer [mm] (see readme for an initial guess if needed)
