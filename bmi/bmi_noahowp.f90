@@ -839,22 +839,22 @@ contains
        dest = [this%model%water%bdsno]
        bmi_status = BMI_SUCCESS
     case("SNICE_1")
-       dest = [this%model%energy%snice(-2)]
+       dest = [this%model%water%snice(-2)]
        bmi_status = BMI_SUCCESS
     case("SNICE_2")
-       dest = [this%model%energy%snice(-1)]
+       dest = [this%model%water%snice(-1)]
        bmi_status = BMI_SUCCESS
     case("SNICE_3")
-        dest = [this%model%energy%snice(0)]
+        dest = [this%model%water%snice(0)]
         bmi_status = BMI_SUCCESS
     case("SNLIQ_1")
-        dest = [this%model%energy%snliq(-2)]
+        dest = [this%model%water%snliq(-2)]
         bmi_status = BMI_SUCCESS
     case("SNLIQ_2")
-        dest = [this%model%energy%snliq(-1)]
+        dest = [this%model%water%snliq(-1)]
         bmi_status = BMI_SUCCESS
     case("SNLIQ_3")
-        dest = [this%model%energy%snliq(0)] ! end aaron a.
+        dest = [this%model%water%snliq(0)] ! end aaron a.
         bmi_status = BMI_SUCCESS
     case default
        dest(:) = -1.0
@@ -1089,22 +1089,22 @@ contains
        this%model%energy%stc(4) = src(1)
        bmi_status = BMI_SUCCESS
     case("SNICE_1")
-       this%model%energy%snice(-2) = src(1)
+       this%model%water%snice(-2) = src(1)
        bmi_status = BMI_SUCCESS
     case("SNICE_2")
-       this%model%energy%snice(-1) = src(1)
+       this%model%water%snice(-1) = src(1)
        bmi_status = BMI_SUCCESS
     case("SNICE_3")
-       this%model%energy%snice(0) = src(1)
+       this%model%water%snice(0) = src(1)
        bmi_status = BMI_SUCCESS
     case("SNLIQ_1")
-       this%model%energy%snliq(-2) = src(1)
+       this%model%water%snliq(-2) = src(1)
        bmi_status = BMI_SUCCESS
     case("SNLIQ_2")
-       this%model%energy%snliq(-1) = src(1)
+       this%model%water%snliq(-1) = src(1)
        bmi_status = BMI_SUCCESS
     case("SNLIQ_3")
-       this%model%energy%snliq(0) = src(1)
+       this%model%water%snliq(0) = src(1)
        bmi_status = BMI_SUCCESS               ! end aaron a. 
     case default
        bmi_status = BMI_FAILURE

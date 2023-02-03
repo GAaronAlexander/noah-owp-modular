@@ -47,8 +47,8 @@ type, public :: namelist_type
   real                            :: fsno    ! fraction of grid covered by snow [-] !aaron a
   real                            :: sneqv   ! snow water equivalent [mm] ! aaron a
   real                            :: bdsno   ! bulk density of snow [kg/m^3] ! aaron a
-  real                            :: snice   ! snow layer ice [mm] ! aaron a.
-  real                            :: snliq   ! snow layer water [mm] ! aaron a.
+  real, allocatable, dimension(:) :: snice   ! snow layer ice [mm] ! aaron a.
+  real, allocatable, dimension(:) :: snliq   ! snow layer water [mm] ! aaron a.
 
 
   !--------------------!
@@ -298,7 +298,7 @@ contains
     allocate (sh2o  (       1:nsoil))   ! soil liquid water content [m3/m3]
     allocate (stc   (-nsnow+1:nsoil))   ! snow/soil layer temperature [K] ! aaron a.
     allocate (snice (-nsnow+1:0))       ! snow layer ice content [mm] ! aaron a.
-    allocate (snliq (-nsnow_1:0))       ! snow layer water content [mm] ! aaron a.
+    allocate (snliq (-nsnow+1:0))       ! snow layer water content [mm] ! aaron a.
 
     ! pre-assign missing values
     sice(1)   = realMissing
