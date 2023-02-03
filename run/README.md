@@ -13,9 +13,11 @@ Feed your values from a previous model spin up into namelist.input.newvars, and 
 
 
 ## Guidance on how to estimate snice/snliq/stc (will require some pen and paper) if this is a 'cold start':
-Take bdsno and sneqv and divide : snowh = sneqv/bdsno [now in meters]
-
-If snowh is less than 0.025 m, do not set any variables snow temperature or snow liquid content.
+Take bdsno and sneqv and divide :
+```
+snowh = sneqv/bdsno [now in meters]
+```
+### If snowh is less than 0.025 m, do not set any variables snow temperature or snow liquid content.
 
 ### If snowh is between 0.05 and 0.025 m (XX is value estimate):
 + stc = 0.0, 0.0, XX
