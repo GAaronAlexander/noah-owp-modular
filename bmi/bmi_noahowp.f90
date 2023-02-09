@@ -694,10 +694,10 @@ contains
        size = sizeof(this%model%water%bdsno)            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case("SNLIQ_1","SNLIQ_2","SNLIQ_3") ! aaron a.
-       size = sizeof(this%model%water%snliq(0))            ! 'sizeof' in gcc & ifort
+       size = sizeof(this%model%water%snliq(-1))            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case("SNICE_1","SNICE_2","SNICE_3") ! aaron a.
-       size = sizeof(this%model%water%snice(0))            ! 'sizeof' in gcc & ifort
+       size = sizeof(this%model%water%snice(-1))            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case default
        size = -1

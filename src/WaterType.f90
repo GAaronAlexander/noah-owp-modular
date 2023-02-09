@@ -197,7 +197,7 @@ contains
     this%sneqv = namelist%sneqv            ! snow water equivalent [mm] Aaron A.
     this%bdsno = namelist%bdsno            ! average snow density [kg/m^3] Aaron A.
     this%snice = namelist%snice            ! snow layer ice [mm] aaron a.
-    this%snliq = namelist%snliq            ! snow layer water [mm] aaron a. 
+    this%snliq = namelist%snliq            ! snow layer water [mm] aaron a.
 
   end subroutine InitTransfer
 

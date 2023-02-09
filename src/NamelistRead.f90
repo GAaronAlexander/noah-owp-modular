@@ -223,8 +223,6 @@ contains
     fsno             = realMissing ! aaron a.
     sneqv            = realMissing ! aaron a.
     bdsno            = realMissing ! aaron a.
-    snice            = realMissing ! aaron a.
-    snliq            = realMissing ! aaron a.
 
     precip_phase_option         = integerMissing
     runoff_option               = integerMissing
@@ -305,8 +303,8 @@ contains
     dzsnso(1) = realMissing
     sh2o(1)   = realMissing
     stc(1)    = realMissing ! aaron a.
-    snice(0)  = realMissing ! aaron a.
-    snliq(0)  = realMissing ! aaron a.
+    snice(-1)  = realMissing ! aaron a.
+    snliq(-1)  = realMissing ! aaron a.
 
     ! read remaining group from namelist
     read(30, initial_values)
@@ -366,8 +364,8 @@ contains
     if(fsno       /= realMissing) then; this%fsno = fsno; else; write(*,'(A)') 'ERROR: required entry fsno not found in namelist'; stop; end if ! aaron a.
     if(sneqv      /= realMissing) then; this%sneqv = sneqv; else; write(*,'(A)') 'ERROR: required entry sneqv not found in namelist'; stop; end if ! aaron a.
     if(bdsno      /= realMissing) then; this%bdsno = bdsno; else; write(*,'(A)') 'ERROR: required entry bdsno not found in namelist'; stop; end if ! aaron a.
-    if(snice(0)   /= realMissing) then; this%snice = snice; else; write(*,'(A)') 'ERROR: required entry snice not found in namelist'; stop; end if ! aaron a.
-    if(snliq(0)   /= realMissing) then; this%snliq = snliq; else; write(*,'(A)') 'ERROR: required entry snliq not found in namelist'; stop; end if ! aaron a. 
+    if(snice(-1)   /= realMissing) then; this%snice = snice; else; write(*,'(A)') 'ERROR: required entry snice not found in namelist'; stop; end if ! aaron a.
+    if(snliq(-1)   /= realMissing) then; this%snliq = snliq; else; write(*,'(A)') 'ERROR: required entry snliq not found in namelist'; stop; end if ! aaron a.
 
 
     if(precip_phase_option         /= integerMissing) then; this%precip_phase_option = precip_phase_option; else; write(*,'(A)') 'ERROR: required entry precip_phase_option not found in namelist'; stop; end if
