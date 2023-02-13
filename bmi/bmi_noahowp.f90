@@ -98,7 +98,7 @@ module bminoahowp
 
   ! Exchange items
   integer, parameter :: input_item_count = 8
-  integer, parameter :: output_item_count = 22 ! aaron a.
+  integer, parameter :: output_item_count = 31 ! aaron a.
   character (len=BMI_MAX_VAR_NAME), target, &
        dimension(input_item_count) :: input_items
   character (len=BMI_MAX_VAR_NAME), target, &
@@ -184,6 +184,15 @@ contains
     output_items(20) = 'SNLIQ_1'   ! snow layer water layer 1 [mm] (may be zero if there is no snow layer)
     output_items(21) = 'SNLIQ_2'   ! snow layer water layer 2 [mm] (may be zero if there is no snow layer)
     output_items(22) = 'SNLIQ_3'   ! snow layer water layer 3 [mm] (may be zero if there is no snow layer)
+    output_items(23) = 'SICE_1'    ! soil layer ice layer 1 [m^3/m^3] (always defined)
+    output_items(24) = 'SICE_2'    ! soil layer ice layer 2 [m^3/m^3] (always defined)
+    output_items(25) = 'SICE_3'    ! soil layer ice layer 3 [m^3/m^3] (always defined)
+    output_items(26) = 'SICE_4'    ! soil layer ice layer 4 [m^3/m^3] (always defined)
+    output_items(27) = 'SH2O_1'    ! soil layer water layer 1 [m^3/m^3] (always defined)
+    output_items(28) = 'SH2O_2'    ! soil layer water layer 2 [m^3/m^3] (always defined)
+    output_items(29) = 'SH2O_3'    ! soil layer water layer 3 [m^3/m^3] (always defined)
+    output_items(30) = 'SH2O_4'    ! soil layer water layer 4 [m^3/m^3] (always defined)
+    output_items(31) = 'ZWT'       ! water table depth below surface [m]
 
     names => output_items
     bmi_status = BMI_SUCCESS
@@ -304,7 +313,9 @@ contains
     case('SFCPRS', 'SFCTMP', 'SOLDN', 'LWDN', 'UU', 'VV', 'Q2', 'PRCPNONC', & ! input vars
          'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
          'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
-         'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3')  ! snow output vars aaron a.
+         'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3', &  ! snow output vars aaron a.
+         'SICE_1','SICE_2','SICE_3','SICE_4','SH2O_1','SH2O_2','SH2O_3','SH2O_4', & ! soil ouptput vars aaron a.
+         'ZWT') ! groundwater level aaron a.
        grid = 0
        bmi_status = BMI_SUCCESS
     case default
@@ -577,7 +588,9 @@ contains
     case('SFCPRS', 'SFCTMP', 'SOLDN', 'LWDN', 'UU', 'VV', 'Q2', 'PRCPNONC', & ! input vars
          'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
          'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
-         'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3')  ! snow output vars aaron a.
+         'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3',&  ! snow output vars aaron a.
+         'SICE_1','SICE_2','SICE_3','SICE_4','SH2O_1','SH2O_2','SH2O_3','SH2O_4', & ! soil ouptput vars aaron a.
+         'ZWT') !groundwater aarona.
        type = "real"
        bmi_status = BMI_SUCCESS
     case default
@@ -625,6 +638,12 @@ contains
     case("FSNO")
        units = "-"
        bmi_status = BMI_SUCCESS
+    case("SICE_1","SICE_2","SICE_3","SICE_4","SH2O_1","SH2O_2","SH2O_3","SH2O_4") ! aaron a.
+      units = "m3/m3"
+      bmi_status = BMI_SUCCESS
+    case("ZWT") ! aaron a.
+      units = "m"
+      bmi_status = BMI_SUCCESS
     case default
        units = "-"
        bmi_status = BMI_FAILURE
@@ -698,6 +717,15 @@ contains
        bmi_status = BMI_SUCCESS
     case("SNICE_1","SNICE_2","SNICE_3") ! aaron a.
        size = sizeof(this%model%water%snice(-1))            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("SICE_1","SICE_2","SICE_3","SICE_4") ! aaron a.
+       size = sizeof(this%model%water%sice(1))            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("SH2O_1","SH2O_2","SH2O_3","SH2O_4") ! aaron a.
+       size = sizeof(this%model%water%sh2o(1))            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
+    case("zwt") ! aaron a.
+       size = sizeof(this%model%water%zwt)            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case default
        size = -1
@@ -845,17 +873,44 @@ contains
        dest = [this%model%water%snice(-1)]
        bmi_status = BMI_SUCCESS
     case("SNICE_3")
-        dest = [this%model%water%snice(0)]
-        bmi_status = BMI_SUCCESS
+       dest = [this%model%water%snice(0)]
+       bmi_status = BMI_SUCCESS
     case("SNLIQ_1")
-        dest = [this%model%water%snliq(-2)]
-        bmi_status = BMI_SUCCESS
+       dest = [this%model%water%snliq(-2)]
+       bmi_status = BMI_SUCCESS
     case("SNLIQ_2")
-        dest = [this%model%water%snliq(-1)]
-        bmi_status = BMI_SUCCESS
+       dest = [this%model%water%snliq(-1)]
+       bmi_status = BMI_SUCCESS
     case("SNLIQ_3")
-        dest = [this%model%water%snliq(0)] ! end aaron a.
-        bmi_status = BMI_SUCCESS
+       dest = [this%model%water%snliq(0)]
+       bmi_status = BMI_SUCCESS
+    case("SICE_1")
+       dest = [this%model%water%sice(1)]
+       bmi_status = BMI_SUCCESS
+    case("SICE_2")
+       dest = [this%model%water%sice(2)]
+       bmi_status = BMI_SUCCESS
+    case("SICE_3")
+       dest = [this%model%water%sice(3)]
+       bmi_status = BMI_SUCCESS
+    case("SICE_4")
+       dest = [this%model%water%sice(4)]
+       bmi_status = BMI_SUCCESS
+    case("SH2O_1")
+       dest = [this%model%water%sh2o(1)]
+       bmi_status = BMI_SUCCESS
+    case("SH2O_2")
+       dest = [this%model%water%sh2o(2)]
+       bmi_status = BMI_SUCCESS
+    case("SH2O_3")
+       dest = [this%model%water%sh2o(3)]
+       bmi_status = BMI_SUCCESS
+    case("SH2O_4")
+       dest = [this%model%water%sh2o(4)]
+       bmi_status = BMI_SUCCESS
+    case("ZWT")
+       dest = [this%model%water%zwt] ! end aaron a.
+       bmi_status = BMI_SUCCESS
     case default
        dest(:) = -1.0
        bmi_status = BMI_FAILURE
@@ -1105,7 +1160,34 @@ contains
        bmi_status = BMI_SUCCESS
     case("SNLIQ_3")
        this%model%water%snliq(0) = src(1)
-       bmi_status = BMI_SUCCESS               ! end aaron a.
+       bmi_status = BMI_SUCCESS
+    case("SICE_1")
+       this%model%water%sice(1) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SICE_2")
+       this%model%water%sice(2) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SICE_3")
+       this%model%water%sice(3) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SICE_4")
+       this%model%water%sice(4) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SH2O_1")
+       this%model%water%sh2o(1) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SH2O_2")
+       this%model%water%sh2o(2) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SH2O_3")
+       this%model%water%sh2o(3) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("SH2O_4")
+       this%model%water%sh2o(4) = src(1)
+       bmi_status = BMI_SUCCESS
+    case("ZWT")
+       this%model%water%zwt = src(1)
+       bmi_status = BMI_SUCCESS         ! end aaron a.
     case default
        bmi_status = BMI_FAILURE
     end select
