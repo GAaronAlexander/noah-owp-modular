@@ -724,7 +724,7 @@ contains
     case("SH2O_1","SH2O_2","SH2O_3","SH2O_4") ! aaron a.
        size = sizeof(this%model%water%sh2o(1))            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
-    case("zwt") ! aaron a.
+    case("ZWT") ! aaron a.
        size = sizeof(this%model%water%zwt)            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
     case default
