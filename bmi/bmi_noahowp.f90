@@ -98,7 +98,7 @@ module bminoahowp
 
   ! Exchange items
   integer, parameter :: input_item_count = 8
-  integer, parameter :: output_item_count = 30 ! aaron a.
+  integer, parameter :: output_item_count = 31 ! aaron a.
   character (len=BMI_MAX_VAR_NAME), target, &
        dimension(input_item_count) :: input_items
   character (len=BMI_MAX_VAR_NAME), target, &
@@ -192,7 +192,7 @@ contains
     output_items(28) = 'SH2O_2'    ! soil layer water layer 2 [m^3/m^3] (always defined)
     output_items(29) = 'SH2O_3'    ! soil layer water layer 3 [m^3/m^3] (always defined)
     output_items(30) = 'SH2O_4'    ! soil layer water layer 4 [m^3/m^3] (always defined)
-    !output_items(31) = 'ZWT'       ! water table depth below surface [m]
+    output_items(31) = 'ZWT'       ! water table depth below surface [m]
 
     names => output_items
     bmi_status = BMI_SUCCESS
@@ -314,7 +314,7 @@ contains
          'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
          'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
          'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3', &  ! snow output vars aaron a.
-         'SICE_1','SICE_2','SICE_3','SICE_4','SH2O_1','SH2O_2','SH2O_3','SH2O_4') ! soil ouptput vars aaron a.) ! groundwater level aaron a.
+         'SICE_1','SICE_2','SICE_3','SICE_4','SH2O_1','SH2O_2','SH2O_3','SH2O_4','ZWT') ! soil ouptput vars aaron a.) ! groundwater level aaron a.
        grid = 0
        bmi_status = BMI_SUCCESS
     case default
@@ -588,7 +588,7 @@ contains
          'QINSUR', 'ETRAN', 'QSEVA', 'EVAPOTRANS', 'TG', 'SNEQV', 'TGS', &    ! output vars
          'FSNO', 'BDSNO', 'STC_1', 'STC_2', 'STC_3', 'STC_4', 'STC_5', &      ! snow output vars Aaron a.
          'STC_6', 'STC_7','SNICE_1','SNICE_2','SNICE_3','SNLIQ_1','SNLIQ_2','SNLIQ_3',&  ! snow output vars aaron a.
-         'SICE_1','SICE_2','SICE_3','SICE_4','SH2O_1','SH2O_2','SH2O_3','SH2O_4')! soil ouptput vars aaron a. !groundwater aarona.
+         'SICE_1','SICE_2','SICE_3','SICE_4','SH2O_1','SH2O_2','SH2O_3','SH2O_4','ZWT')! soil ouptput vars aaron a. !groundwater aarona.
        type = "real"
        bmi_status = BMI_SUCCESS
     case default
@@ -639,9 +639,9 @@ contains
     case("SICE_1","SICE_2","SICE_3","SICE_4","SH2O_1","SH2O_2","SH2O_3","SH2O_4") ! aaron a.
       units = "m3/m3"
       bmi_status = BMI_SUCCESS
-    ! case("ZWT") ! aaron a.
-    !   units = "m"
-    !   bmi_status = BMI_SUCCESS
+    case("ZWT") ! aaron a.
+      units = "m"
+      bmi_status = BMI_SUCCESS
     case default
        units = "-"
        bmi_status = BMI_FAILURE
@@ -722,9 +722,9 @@ contains
     case("SH2O_1","SH2O_2","SH2O_3","SH2O_4") ! aaron a.
        size = sizeof(this%model%water%sh2o(1))            ! 'sizeof' in gcc & ifort
        bmi_status = BMI_SUCCESS
-    ! case("ZWT") ! aaron a.
-    !    size = sizeof(this%model%water%zwt)            ! 'sizeof' in gcc & ifort
-    !    bmi_status = BMI_SUCCESS
+    case("ZWT") ! aaron a.
+       size = sizeof(this%model%water%zwt)            ! 'sizeof' in gcc & ifort
+       bmi_status = BMI_SUCCESS
     case default
        size = -1
        bmi_status = BMI_FAILURE
@@ -906,9 +906,9 @@ contains
     case("SH2O_4")
        dest = [this%model%water%sh2o(4)]
        bmi_status = BMI_SUCCESS
-    ! case("ZWT")
-    !    dest = [this%model%water%zwt] ! end aaron a.
-    !    bmi_status = BMI_SUCCESS
+    case("ZWT")
+       dest = [this%model%water%zwt] ! end aaron a.
+       bmi_status = BMI_SUCCESS
     case default
        dest(:) = -1.0
        bmi_status = BMI_FAILURE
@@ -1183,9 +1183,9 @@ contains
     case("SH2O_4")
        this%model%water%sh2o(4) = src(1)
        bmi_status = BMI_SUCCESS
-    ! case("ZWT")
-    !    this%model%water%zwt = src(1)
-    !    bmi_status = BMI_SUCCESS         ! end aaron a.
+    case("ZWT")
+       this%model%water%zwt = src(1)
+       bmi_status = BMI_SUCCESS         ! end aaron a.
     case default
        bmi_status = BMI_FAILURE
     end select
