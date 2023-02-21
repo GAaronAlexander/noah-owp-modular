@@ -40,7 +40,8 @@ contains
     type(noahowp_type), target, intent(out) :: model
     character(len=*), intent (in)           :: config_filename    ! config file from command line argument
     integer             :: forcing_timestep         ! integer time step (set to dt) for some subroutine calls
-    integer             :: IZ ! loop constant ! aaron a.
+    integer             :: IZ, trigger_recalc, location_error ! snow constants ! aaron a.
+
 
     associate(namelist   => model%namelist,   &
               levels     => model%levels,     &
@@ -121,7 +122,7 @@ contains
       water%QVAP     = 0.0           ! evaporation/sublimation rate mm/s
       water%ISNOW    = 0
       water%SNOWH    = 0.0
-      !water%SNEQV    = 0.0          !snow water equivelant [mm] aaron a. (now initilized by user)
+      water%SNEQV    = 0.0
       water%SNEQVO   = 0.0
       !water%BDSNO    = 0.0          !snow average density [kg/m^3] aaron a. (now initilized by user )
       water%PONDING  = 0.0
@@ -188,6 +189,13 @@ contains
       !! https://github.com/NCAR/noahmp/blob/master/drivers/wrf/module_sf_noahmpdrv.F
       !! ~line 2236
       !! Begin code changes (Aaron A.)
+
+      ! filling snow water equivelant
+      trigger_recalc = 0
+      do IZ = -2, 0
+        water%SNEQV = water%SNEQV + water%SNICE(IZ) + water%SNLIQ(IZ)
+      end do
+
       if ((water%SNEQV <= 0.0).AND. (water%BDSNO <= 0.0)) then
         if (energy%stc(0) > 0.0) then
            write(*,'(A)') 'ERROR: Problem with snow water equivelant, snow density, and snow temperature assignment. Either remove the snow layer temperature (STC) or increase snow water equivelant and snow density .'
@@ -236,24 +244,47 @@ contains
         end if !first nest
       end if ! second nest
 
-      ! now assign layer depths (zsnso) ! always 0 and -1
-      domain%zsnso(water%ISNOW+1) = domain%dzsnso(water%ISNOW+1)
-
-      if (water%isnow <= -2) then ! are there -2 or -3 layers
-        domain%zsnso(water%isnow+2) = domain%dzsnso(water%isnow+2) + domain%zsnso(water%ISNOW+1)
-        if (water%isnow == -3) then ! is there a -3 layer
-          domain%zsnso(water%isnow+3) = domain%dzsnso(water%isnow+3) + domain%zsnso(water%ISNOW+2)
-        end if
-      end if
-
-
-      ! now we need to do a final check of the namelist:
+      ! add a check due to some funky stuff with ISNOW and snow depths
       do IZ = water%ISNOW+1, 0
         if ((water%snice(IZ)==0).and.(water%snliq(IZ)==0)) then
-            write(*,'(A)') 'ERROR: There is a problem with the designation fo SNICE, SNLIQ. Namelist does not specify value, when there should be a value based on BDSNO & SNEQV. Fix Namelist Input and try again.'
-             stop
+            write(*,'(A)') 'WARNING: There is problem between the calculation snow height and user specified SNICE, SNLIQ, and BDSNO, with the snow height calculated being higher than the input'
+            write(*,'(A)') 'We assume that the user specifcation is correct, and adjust snow initilization accordingly'
+            trigger_recalc = 1
+            location_error = IZ
+            exit !exit and adjust
         end if ! end final initiliztion check
       end do ! end for loop
+
+      if (trigger_recalc == 1) then ! we have to recalcualte
+
+        if( location_error-1 == -1) then ! we have calculated 1 layer, but specified 0
+          water%SNOWH = 0.025
+          water%ISNOW = 0
+          domain%dzsnso(-namelist%nsnow+1:0) = 0.0
+        else if (location_error-1 == -2) then ! we have calculated 2 layers, but specified 1
+          water%ISNOW = -1
+          water%SNOWH = 0.05
+          domain%dzsnso(-2) = 0.0
+          domain%dzsnso(-1) = 0.0
+          domain%dzsnso(0) = water%SNOWH
+        else if (location_error-1 == -3) then ! we have calculated 3 layers, but specified 2
+          water%ISNOW = -2
+          water%SNOWH = 0.25
+          domain%dzsnso(-2) = 0.0
+          domain%dzsnso(-1) = 0.05
+          domain%dzsnso(0) = 0.20
+        end if
+      end if ! end trigger check for snow depths
+      
+      ! now assign layer depths (zsnso) ! always 0 and -1
+        domain%zsnso(water%ISNOW+1) = domain%dzsnso(water%ISNOW+1)
+
+        if (water%isnow <= -2) then ! are there -2 or -3 layers
+          domain%zsnso(water%isnow+2) = domain%dzsnso(water%isnow+2) + domain%zsnso(water%ISNOW+1)
+          if (water%isnow == -3) then ! is there a -3 layer
+            domain%zsnso(water%isnow+3) = domain%dzsnso(water%isnow+3) + domain%zsnso(water%ISNOW+2)
+          end if
+        end if
 
      end if ! end the check
      !! end the changes made by Aaron A.

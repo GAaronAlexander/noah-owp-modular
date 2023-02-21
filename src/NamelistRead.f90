@@ -45,7 +45,6 @@ type, public :: namelist_type
   real                            :: tg      ! initial ground temperature [K] ! aaron a
   real, allocatable, dimension(:) :: stc     ! snow/soil temperature [K] ! aaron a (up to 7 layers)
   real                            :: fsno    ! fraction of grid covered by snow [-] !aaron a
-  real                            :: sneqv   ! snow water equivalent [mm] ! aaron a
   real                            :: bdsno   ! bulk density of snow [kg/m^3] ! aaron a
   real, allocatable, dimension(:) :: snice   ! snow layer ice [mm] ! aaron a.
   real, allocatable, dimension(:) :: snliq   ! snow layer water [mm] ! aaron a.
@@ -134,7 +133,6 @@ contains
     real                            :: tg      ! initial ground temperature [K] ! aaron a
     real, allocatable, dimension(:) :: stc     ! snow/soil temperature [K] ! aaron a (up to 7 layers)
     real                            :: fsno    ! fraction of grid covered by snow [-] !aaron a
-    real                            :: sneqv   ! snow water equivalent [mm] ! aaron a
     real                            :: bdsno   ! bulk density of snow [kg/m^3] ! aaron a
     real, allocatable, dimension(:) :: snice   ! snow layer ice [mm] aaron a.
     real, allocatable, dimension(:) :: snliq   ! snow layer water [mm] aaron a.
@@ -177,7 +175,7 @@ contains
                                  supercooled_water_option,stomatal_resistance_option,&
                                  evap_srfc_resistance_option,subsurface_option
     namelist / structure       / isltyp,nsoil,nsnow,nveg,vegtyp,croptype,sfctyp,soilcolor
-    namelist / initial_values  / zsoil,dzsnso,sice,sh2o,zwt,tg,stc,fsno,sneqv,bdsno,snice,snliq ! aaron a.
+    namelist / initial_values  / zsoil,dzsnso,sice,sh2o,zwt,tg,stc,fsno,bdsno,snice,snliq ! aaron a.
 
     ! missing values against which namelist options can be checked
     integer            :: integerMissing
@@ -221,7 +219,6 @@ contains
     zwt              = realMissing
     tg               = realMissing ! aaron a.
     fsno             = realMissing ! aaron a.
-    sneqv            = realMissing ! aaron a.
     bdsno            = realMissing ! aaron a.
 
     precip_phase_option         = integerMissing
@@ -362,7 +359,6 @@ contains
     if(tg         /= realMissing) then; this%tg = tg; else; write(*,'(A)') 'ERROR: required entry tg not found in namelist'; stop; end if ! aaron a.
     if(stc(1)     /= realMissing) then; this%stc = stc; else; write(*,'(A)') 'ERROR: required entry stc not found in namelist'; stop; end if ! aaron a.
     if(fsno       /= realMissing) then; this%fsno = fsno; else; write(*,'(A)') 'ERROR: required entry fsno not found in namelist'; stop; end if ! aaron a.
-    if(sneqv      /= realMissing) then; this%sneqv = sneqv; else; write(*,'(A)') 'ERROR: required entry sneqv not found in namelist'; stop; end if ! aaron a.
     if(bdsno      /= realMissing) then; this%bdsno = bdsno; else; write(*,'(A)') 'ERROR: required entry bdsno not found in namelist'; stop; end if ! aaron a.
     if(snice(-1)   /= realMissing) then; this%snice = snice; else; write(*,'(A)') 'ERROR: required entry snice not found in namelist'; stop; end if ! aaron a.
     if(snliq(-1)   /= realMissing) then; this%snliq = snliq; else; write(*,'(A)') 'ERROR: required entry snliq not found in namelist'; stop; end if ! aaron a.
